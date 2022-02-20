@@ -42,12 +42,10 @@ namespace Core
             {
                 Console.WriteLine($"Connected to {e.Channel}");
             };
-            Client.OnMessageReceived += (s, e) =>
-            {
-            };
             Client.OnConnected += (s, e) =>
             {
                 Console.WriteLine("connected");
+                EventSub eSub = new();
             };
 
             Client.Connect();
