@@ -12,16 +12,17 @@ namespace Core
     internal static class Commands
     {
         private static Helix Helix { get; } = new Helix(settings: new ApiSettings() { AccessToken = Core.Config.access_token, ClientId = Core.Config.client_id });
-        public static void UpdateConfig()
+        public static async Task UpdateConfig()
         {
             try
             {
-                File.WriteAllText("config.json", JsonSerializer.Serialize(Core.Config));
+                await File.WriteAllTextAsync("config.json", JsonSerializer.Serialize(Core.Config));
             }
             // lol
             catch (IOException)
             {
-                UpdateConfig();
+                await Task.Delay(250);
+                await UpdateConfig();
             }
         }
 
@@ -72,7 +73,7 @@ namespace Core
 
             Console.WriteLine("Send notification for title change? (yes/no)");
             string? title = Console.ReadLine();
-            bool nTitle = title== "yes";
+            bool nTitle = title == "yes";
             if (nTitle)
             {
                 Console.WriteLine("What text should be sent when this happens? e.g: You can make this event ping a specific role (leave empty to ignore)");
@@ -106,7 +107,28 @@ namespace Core
             List<Channel> channels = (Core.Config.channels ?? Array.Empty<Channel>()).ToList();
             channels.Add(_channel);
             Core.Config.channels = channels.ToArray();
-            UpdateConfig();
+            await UpdateConfig();
+            Console.WriteLine($"Added {channel}");
+        }
+
+        public static async Task RemoveChannel(string channel)
+        {
+            if (Core.Config.channels is null || Core.Config.channels.Length == 0)
+            {
+                Console.WriteLine("You don't have any channels added to remove them, add channels first with the add command");
+                return;
+            }
+            Channel? _channel = Core.Config.channels.FirstOrDefault(x => x.name == channel);
+            if (_channel is null)
+            {
+                Console.WriteLine("That channel was not found");
+                return;
+            }
+            List<Channel> channels = Core.Config.channels.ToList();
+            channels.Remove(_channel);
+            Core.Config.channels = channels.ToArray();
+            await UpdateConfig();
+            Console.WriteLine($"Removed {channel}");
         }
     }
 }

@@ -32,14 +32,14 @@ namespace Core
                 {
                     Console.WriteLine("Access Token: ");
                     Config.access_token = Console.ReadLine();
-                    Commands.UpdateConfig();
+                    await Commands.UpdateConfig();
                     continue;
                 }
                 if (string.IsNullOrEmpty(Config.client_id))
                 {
                     Console.WriteLine("Client ID: ");
                     Config.client_id = Console.ReadLine();
-                    Commands.UpdateConfig();
+                    await Commands.UpdateConfig();
                     continue;
                 }
                 string? input = Console.ReadLine();
@@ -59,6 +59,7 @@ namespace Core
                             await Commands.AddChannel(input!.Split(' ')[1]);
                             break;
                         case "remove":
+                            await Commands.RemoveChannel(input!.Split(' ')[1]);
                             break;
                         case "help":
                             Commands.PrintHelp();
@@ -77,7 +78,6 @@ namespace Core
                 }
             }
         }
-
     }
 
     
