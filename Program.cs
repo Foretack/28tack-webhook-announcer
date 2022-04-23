@@ -2,7 +2,7 @@
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace Core
 {
@@ -10,22 +10,43 @@ namespace Core
     {
         public static Config Config { get; private set; } = default!;
 
-        private static string[] Commands { get; } = { "connect", "disconnect", "edit", "add", "remove", "help"};
         static async Task Main(string[] args)
         {
-            StreamReader reader = new StreamReader("config.json");
-            string json = reader.ReadToEnd();
-            Config = JsonConvert.DeserializeObject<Config>(json)!;
+            StreamReader reader;
+            try { reader = new StreamReader("config.json"); }
+            catch (FileNotFoundException) 
+            {
+                JsonSerializerOptions options = new() { WriteIndented = true };
+                await File.WriteAllTextAsync("config.json", JsonSerializer.Serialize(new Config(), options: options));
+                reader = new StreamReader("config.json");
+            }
+            string json = await reader.ReadToEndAsync();
+            Config = JsonSerializer.Deserialize<Config>(json)!;
 
             reader.Close();
             reader.Dispose();
 
             while (true)
             {
+                if (string.IsNullOrEmpty(Config.access_token))
+                {
+                    Console.WriteLine("Access Token: ");
+                    Config.access_token = Console.ReadLine();
+                    Commands.UpdateConfig();
+                    continue;
+                }
+                if (string.IsNullOrEmpty(Config.client_id))
+                {
+                    Console.WriteLine("Client ID: ");
+                    Config.client_id = Console.ReadLine();
+                    Commands.UpdateConfig();
+                    continue;
+                }
                 string? input = Console.ReadLine();
-                if (input is not null && !Commands.Contains(input!.Split(' ')[0]))
+                if (input is not null)
                 {
                     string command = input!.Split(' ')[0];
+                    
                     switch (command)
                     {
                         case "connect":
@@ -35,13 +56,18 @@ namespace Core
                         case "edit":
                             break;
                         case "add":
+                            await Commands.AddChannel(input!.Split(' ')[1]);
                             break;
                         case "remove":
                             break;
+                        case "help":
+                            Commands.PrintHelp();
+                            break;
+                        case "exit":
+                            break;
 
                         default:
-                            Console.WriteLine("Unrecognized input!");
-                            PrintHelp();
+                            Console.WriteLine("Unrecognized command! Type help for a list of commands.");
                             break;
                     }
                 }
@@ -52,29 +78,6 @@ namespace Core
             }
         }
 
-        private static void PrintHelp()
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"Commands: \n\n");
-            Console.WriteLine("------------------------------------------------------");
-            Console.ForegroundColor= ConsoleColor.Blue;
-
-            Console.WriteLine($"edit <channel> <unsub/sub> <live/title/game/offline>");
-            Console.WriteLine($"edit <channel> update <live/title/game/offline> <new message>\n");
-
-            Console.WriteLine($"add <channel>\n");
-
-            Console.WriteLine($"remove <channel>\n");
-
-            Console.WriteLine($"disconnect");
-            Console.WriteLine($"connect \\\\The program automatically connects, only use this when you disconnected manually\n");
-
-            Console.WriteLine($"exit");
-
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine("------------------------------------------------------");
-            Console.ForegroundColor = ConsoleColor.White;
-        }
     }
 
     
